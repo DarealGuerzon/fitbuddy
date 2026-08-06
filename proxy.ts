@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySessionToken } from "@/lib/auth";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const token = request.cookies.get("session")?.value;
 
   if (!token || !verifySessionToken(token)) {
@@ -14,6 +14,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|login|api/auth|api/push/subscribe|api/cron).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|login(?:/|$)|api/auth(?:/|$)|api/push/subscribe(?:/|$)|api/cron(?:/|$)).*)",
   ],
 };

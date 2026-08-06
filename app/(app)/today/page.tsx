@@ -1,3 +1,4 @@
+import { LocalDateField } from "@/components/LocalDateField";
 import { startSession } from "./actions";
 
 export default function TodayPage() {
@@ -10,6 +11,7 @@ export default function TodayPage() {
       </div>
 
       <form action={startSession} className="flex flex-col gap-3">
+        <LocalDateField />
         <input
           name="session_label"
           placeholder="Session label (e.g. Mon lower)"

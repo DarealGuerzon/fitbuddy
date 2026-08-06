@@ -11,12 +11,17 @@ export async function startSession(formData: FormData) {
 
   if (!profileId) redirect("/select-profile");
 
+  const localDateRaw = String(formData.get("local_date") ?? "");
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(localDateRaw)
+    ? localDateRaw
+    : new Date().toISOString().slice(0, 10);
+
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("sessions")
     .insert({
       profile_id: profileId,
-      date: new Date().toISOString().slice(0, 10),
+      date,
       session_label: sessionLabel || null,
     })
     .select("id")

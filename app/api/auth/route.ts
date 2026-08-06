@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyPasscode, createSessionToken } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
-  const { passcode } = await request.json();
+  let passcode: unknown;
+  try {
+    ({ passcode } = await request.json());
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
   if (typeof passcode !== "string" || !(await verifyPasscode(passcode))) {
     return NextResponse.json({ error: "Incorrect passcode" }, { status: 401 });

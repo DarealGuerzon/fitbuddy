@@ -14,20 +14,24 @@ export function LoginForm() {
     setSubmitting(true);
     setError(null);
 
-    const res = await fetch("/api/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ passcode }),
-    });
+    try {
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passcode }),
+      });
 
-    setSubmitting(false);
+      if (!res.ok) {
+        setError("Incorrect passcode");
+        return;
+      }
 
-    if (!res.ok) {
-      setError("Incorrect passcode");
-      return;
+      router.push("/select-profile");
+    } catch {
+      setError("Something went wrong — try again");
+    } finally {
+      setSubmitting(false);
     }
-
-    router.push("/select-profile");
   }
 
   return (

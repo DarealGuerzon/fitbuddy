@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { createSessionToken, verifySessionToken, verifyPasscode } from "./auth";
 import bcrypt from "bcryptjs";
 
@@ -16,6 +16,14 @@ describe("session token", () => {
     const token = createSessionToken();
     const tampered = token.slice(0, -1) + (token.endsWith("a") ? "b" : "a");
     expect(verifySessionToken(tampered)).toBe(false);
+  });
+
+  it("rejects a forged payload paired with a stale valid signature", () => {
+    const token = createSessionToken();
+    const [, signature] = token.split(".");
+    const forgedPayload = Buffer.from(JSON.stringify({ iat: Date.now() + 60_000 })).toString("base64");
+    const forged = `${forgedPayload}.${signature}`;
+    expect(verifySessionToken(forged)).toBe(false);
   });
 
   it("rejects a token signed with a different secret", () => {

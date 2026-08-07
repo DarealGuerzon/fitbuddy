@@ -30,7 +30,7 @@ create table sessions (
 
 create table exercises (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
+  name text not null unique,
   category text
 );
 

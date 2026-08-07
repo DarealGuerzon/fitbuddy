@@ -9,29 +9,21 @@ export async function logSet(formData: FormData) {
   const reps = Number(formData.get("reps"));
   const weightKg = Number(formData.get("weight_kg"));
 
-  if (!sessionId || !exerciseName || !reps || Number.isNaN(weightKg)) {
+  if (!sessionId || !exerciseName || Number.isNaN(reps) || Number.isNaN(weightKg)) {
     throw new Error("Missing required set fields");
   }
 
   const supabase = getSupabaseServerClient();
 
-  const { data: existing } = await supabase
+  const { data: exercise, error: exerciseError } = await supabase
     .from("exercises")
+    .upsert({ name: exerciseName, category: "lift" }, { onConflict: "name", ignoreDuplicates: false })
     .select("id")
-    .eq("name", exerciseName)
-    .maybeSingle();
+    .single();
 
-  let exerciseId = existing?.id as string | undefined;
+  if (exerciseError || !exercise) throw new Error(exerciseError?.message ?? "Failed to resolve exercise");
 
-  if (!exerciseId) {
-    const { data: created, error: createError } = await supabase
-      .from("exercises")
-      .insert({ name: exerciseName, category: "lift" })
-      .select("id")
-      .single();
-    if (createError || !created) throw new Error(createError?.message ?? "Failed to create exercise");
-    exerciseId = created.id;
-  }
+  const exerciseId = exercise.id;
 
   const { count } = await supabase
     .from("sets")

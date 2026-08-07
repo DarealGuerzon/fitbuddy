@@ -73,10 +73,10 @@ export function computeConditioningTrend(
   metricType: string
 ): { date: string; value: number }[] {
   return logs
-    .filter((log) => log.modality === modality && log.metric_type === metricType)
+    .filter((log) => log.modality === modality && log.metric_type === metricType && log.value != null)
     .map((log) => ({
       date: sessionDateById[log.session_id],
-      value: log.value ?? 0,
+      value: log.value as number,
     }))
     .filter((point): point is { date: string; value: number } => Boolean(point.date))
     .sort((a, b) => a.date.localeCompare(b.date));

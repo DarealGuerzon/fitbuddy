@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
+import { parseRequiredNumber, parseOptionalNumber } from "@/lib/form";
 
 export async function logSet(formData: FormData) {
   const sessionId = String(formData.get("session_id"));
   const exerciseName = String(formData.get("exercise_name") ?? "").trim();
-  const repsRaw = formData.get("reps");
-  const reps = repsRaw === null ? NaN : Number(repsRaw);
+  const reps = parseRequiredNumber(formData, "reps");
   const weightKg = Number(formData.get("weight_kg"));
 
   if (!sessionId || !exerciseName || Number.isNaN(reps) || Number.isNaN(weightKg)) {
@@ -49,10 +49,8 @@ export async function logConditioning(formData: FormData) {
   const sessionId = String(formData.get("session_id"));
   const modality = String(formData.get("modality") ?? "").trim();
   const metricType = String(formData.get("metric_type") ?? "").trim();
-  const valueRaw = formData.get("value");
-  const value = valueRaw === null ? NaN : Number(valueRaw);
-  const durationRaw = formData.get("duration_sec");
-  const durationSec = durationRaw === null || durationRaw === "" ? NaN : Number(durationRaw);
+  const value = parseRequiredNumber(formData, "value");
+  const durationSec = parseOptionalNumber(formData, "duration_sec");
 
   if (!sessionId || !modality || !metricType || Number.isNaN(value)) {
     throw new Error("Missing required conditioning fields");
@@ -64,7 +62,7 @@ export async function logConditioning(formData: FormData) {
     modality,
     metric_type: metricType,
     value,
-    duration_sec: Number.isNaN(durationSec) ? null : durationSec,
+    duration_sec: durationSec,
   });
 
   if (error) throw new Error(error.message);

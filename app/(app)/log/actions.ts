@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { parseRequiredNumber, parseOptionalNumber } from "@/lib/form";
 
@@ -37,6 +38,31 @@ export async function logSet(formData: FormData) {
     exercise_id: exerciseId,
     set_number: (count ?? 0) + 1,
     reps,
+    weight_kg: weightKg,
+  });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/log");
+}
+
+export async function logWeighIn(formData: FormData) {
+  const weightKg = parseRequiredNumber(formData, "weight_kg");
+  if (Number.isNaN(weightKg)) throw new Error("Weight is required");
+
+  const cookieStore = await cookies();
+  const profileId = cookieStore.get("profile_id")?.value;
+  if (!profileId) throw new Error("No profile selected");
+
+  const localDateRaw = String(formData.get("local_date") ?? "");
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(localDateRaw)
+    ? localDateRaw
+    : new Date().toISOString().slice(0, 10);
+
+  const supabase = getSupabaseServerClient();
+  const { error } = await supabase.from("weigh_ins").insert({
+    profile_id: profileId,
+    date,
     weight_kg: weightKg,
   });
 

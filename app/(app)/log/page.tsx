@@ -1,5 +1,6 @@
 import { SetEntryForm } from "@/components/SetEntryForm";
 import { ConditioningEntryForm } from "@/components/ConditioningEntryForm";
+import { WeighInForm } from "@/components/WeighInForm";
 
 export default async function LogPage({
   searchParams,
@@ -21,6 +22,7 @@ export default async function LogPage({
           Start a session from Today to log sets.
         </p>
       )}
+      <WeighInForm />
     </main>
   );
 }

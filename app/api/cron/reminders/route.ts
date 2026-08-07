@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { sendPushNotification } from "@/lib/push";
+import { sendReminderEmail } from "@/lib/email";
 import type { Profile } from "@/lib/types";
 import type webpush from "web-push";
 
@@ -33,10 +34,11 @@ export async function GET(request: NextRequest) {
     .eq("date", today);
 
   const weighedInIds = new Set((weighInsToday ?? []).map((w) => w.profile_id));
-  const missing = (profiles ?? []).filter((p) => !weighedInIds.has(p.id) && p.push_subscription);
+  const missing = (profiles ?? []).filter((p) => !weighedInIds.has(p.id));
 
-  const results = await Promise.allSettled(
-    missing.map((profile) =>
+  const pushTargets = missing.filter((p) => p.push_subscription);
+  const pushResults = await Promise.allSettled(
+    pushTargets.map((profile) =>
       sendPushNotification(profile.push_subscription as unknown as webpush.PushSubscription, {
         title: "FitBuddy",
         body: "No weigh-in logged today yet.",
@@ -44,15 +46,29 @@ export async function GET(request: NextRequest) {
     )
   );
 
-  results.forEach((result, i) => {
+  pushResults.forEach((result, i) => {
     if (result.status === "rejected") {
-      console.error(`Push notification failed for profile ${missing[i].id}:`, result.reason);
+      console.error(`Push notification failed for profile ${pushTargets[i].id}:`, result.reason);
+    }
+  });
+
+  const emailTargets = missing.filter((p) => p.email);
+  const emailResults = await Promise.allSettled(
+    emailTargets.map((profile) =>
+      sendReminderEmail(profile.email as string, "FitBuddy reminder", "No weigh-in logged today yet.")
+    )
+  );
+
+  emailResults.forEach((result, i) => {
+    if (result.status === "rejected") {
+      console.error(`Email reminder failed for profile ${emailTargets[i].id}:`, result.reason);
     }
   });
 
   return NextResponse.json({
     checked: profiles?.length ?? 0,
     notified: missing.length,
-    failures: results.filter((r) => r.status === "rejected").length,
+    pushFailures: pushResults.filter((r) => r.status === "rejected").length,
+    emailFailures: emailResults.filter((r) => r.status === "rejected").length,
   });
 }

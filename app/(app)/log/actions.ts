@@ -3,13 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
-import { parseRequiredNumber, parseOptionalNumber } from "@/lib/form";
+import { parseRequiredNumber, parseOptionalNumber, getLocalDate } from "@/lib/form";
 
 export async function logSet(formData: FormData) {
   const sessionId = String(formData.get("session_id"));
   const exerciseName = String(formData.get("exercise_name") ?? "").trim();
   const reps = parseRequiredNumber(formData, "reps");
-  const weightKg = Number(formData.get("weight_kg"));
+  const weightKg = parseRequiredNumber(formData, "weight_kg");
 
   if (!sessionId || !exerciseName || Number.isNaN(reps) || Number.isNaN(weightKg)) {
     throw new Error("Missing required set fields");
@@ -54,10 +54,7 @@ export async function logWeighIn(formData: FormData) {
   const profileId = cookieStore.get("profile_id")?.value;
   if (!profileId) throw new Error("No profile selected");
 
-  const localDateRaw = String(formData.get("local_date") ?? "");
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(localDateRaw)
-    ? localDateRaw
-    : new Date().toISOString().slice(0, 10);
+  const date = getLocalDate(formData);
 
   const supabase = getSupabaseServerClient();
   const { error } = await supabase.from("weigh_ins").insert({
@@ -106,10 +103,7 @@ export async function logMeasurement(formData: FormData) {
   const profileId = cookieStore.get("profile_id")?.value;
   if (!profileId) throw new Error("No profile selected");
 
-  const localDateRaw = String(formData.get("local_date") ?? "");
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(localDateRaw)
-    ? localDateRaw
-    : new Date().toISOString().slice(0, 10);
+  const date = getLocalDate(formData);
 
   const supabase = getSupabaseServerClient();
   const { error } = await supabase.from("measurements").insert({
@@ -132,10 +126,7 @@ export async function logAdherence(formData: FormData) {
   const profileId = cookieStore.get("profile_id")?.value;
   if (!profileId) throw new Error("No profile selected");
 
-  const localDateRaw = String(formData.get("local_date") ?? "");
-  const today = /^\d{4}-\d{2}-\d{2}$/.test(localDateRaw)
-    ? localDateRaw
-    : new Date().toISOString().slice(0, 10);
+  const today = getLocalDate(formData);
 
   const supabase = getSupabaseServerClient();
 

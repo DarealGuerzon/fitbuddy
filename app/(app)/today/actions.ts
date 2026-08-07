@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
+import { getLocalDate } from "@/lib/form";
 
 export async function startSession(formData: FormData) {
   const sessionLabel = String(formData.get("session_label") ?? "").trim();
@@ -11,10 +12,7 @@ export async function startSession(formData: FormData) {
 
   if (!profileId) redirect("/select-profile");
 
-  const localDateRaw = String(formData.get("local_date") ?? "");
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(localDateRaw)
-    ? localDateRaw
-    : new Date().toISOString().slice(0, 10);
+  const date = getLocalDate(formData);
 
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase

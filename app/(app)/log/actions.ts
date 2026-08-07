@@ -95,3 +95,36 @@ export async function logConditioning(formData: FormData) {
 
   revalidatePath("/log");
 }
+
+export async function logAdherence(formData: FormData) {
+  const proteinHit = formData.get("protein_hit") === "on";
+  const deficitHit = formData.get("deficit_hit") === "on";
+
+  const cookieStore = await cookies();
+  const profileId = cookieStore.get("profile_id")?.value;
+  if (!profileId) throw new Error("No profile selected");
+
+  const localDateRaw = String(formData.get("local_date") ?? "");
+  const today = /^\d{4}-\d{2}-\d{2}$/.test(localDateRaw)
+    ? localDateRaw
+    : new Date().toISOString().slice(0, 10);
+
+  const supabase = getSupabaseServerClient();
+
+  const { data: existing } = await supabase
+    .from("adherence_checkins")
+    .select("id")
+    .eq("profile_id", profileId)
+    .eq("date", today)
+    .maybeSingle();
+
+  const payload = { protein_hit: proteinHit, deficit_hit: deficitHit };
+
+  const { error } = existing
+    ? await supabase.from("adherence_checkins").update(payload).eq("id", existing.id)
+    : await supabase.from("adherence_checkins").insert({ profile_id: profileId, date: today, ...payload });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/log");
+}

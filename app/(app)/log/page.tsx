@@ -1,6 +1,7 @@
 import { SetEntryForm } from "@/components/SetEntryForm";
 import { ConditioningEntryForm } from "@/components/ConditioningEntryForm";
 import { WeighInForm } from "@/components/WeighInForm";
+import { AdherenceToggle } from "@/components/AdherenceToggle";
 
 export default async function LogPage({
   searchParams,
@@ -23,6 +24,7 @@ export default async function LogPage({
         </p>
       )}
       <WeighInForm />
+      <AdherenceToggle />
     </main>
   );
 }

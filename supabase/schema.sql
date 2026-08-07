@@ -64,7 +64,8 @@ create table adherence_checkins (
   profile_id uuid references profiles(id) not null,
   date date not null,
   protein_hit boolean,
-  deficit_hit boolean
+  deficit_hit boolean,
+  unique (profile_id, date)
 );
 
 create table measurements (

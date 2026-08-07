@@ -111,18 +111,12 @@ export async function logAdherence(formData: FormData) {
 
   const supabase = getSupabaseServerClient();
 
-  const { data: existing } = await supabase
+  const { error } = await supabase
     .from("adherence_checkins")
-    .select("id")
-    .eq("profile_id", profileId)
-    .eq("date", today)
-    .maybeSingle();
-
-  const payload = { protein_hit: proteinHit, deficit_hit: deficitHit };
-
-  const { error } = existing
-    ? await supabase.from("adherence_checkins").update(payload).eq("id", existing.id)
-    : await supabase.from("adherence_checkins").insert({ profile_id: profileId, date: today, ...payload });
+    .upsert(
+      { profile_id: profileId, date: today, protein_hit: proteinHit, deficit_hit: deficitHit },
+      { onConflict: "profile_id,date" }
+    );
 
   if (error) throw new Error(error.message);
 

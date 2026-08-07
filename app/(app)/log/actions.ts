@@ -96,6 +96,34 @@ export async function logConditioning(formData: FormData) {
   revalidatePath("/log");
 }
 
+export async function logMeasurement(formData: FormData) {
+  const bodyPart = String(formData.get("body_part") ?? "").trim();
+  const valueCm = parseRequiredNumber(formData, "value_cm");
+
+  if (!bodyPart || Number.isNaN(valueCm)) throw new Error("Missing measurement fields");
+
+  const cookieStore = await cookies();
+  const profileId = cookieStore.get("profile_id")?.value;
+  if (!profileId) throw new Error("No profile selected");
+
+  const localDateRaw = String(formData.get("local_date") ?? "");
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(localDateRaw)
+    ? localDateRaw
+    : new Date().toISOString().slice(0, 10);
+
+  const supabase = getSupabaseServerClient();
+  const { error } = await supabase.from("measurements").insert({
+    profile_id: profileId,
+    date,
+    body_part: bodyPart,
+    value_cm: valueCm,
+  });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/log");
+}
+
 export async function logAdherence(formData: FormData) {
   const proteinHit = formData.get("protein_hit") === "on";
   const deficitHit = formData.get("deficit_hit") === "on";

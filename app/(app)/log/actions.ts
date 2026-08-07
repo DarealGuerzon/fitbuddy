@@ -6,7 +6,8 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 export async function logSet(formData: FormData) {
   const sessionId = String(formData.get("session_id"));
   const exerciseName = String(formData.get("exercise_name") ?? "").trim();
-  const reps = Number(formData.get("reps"));
+  const repsRaw = formData.get("reps");
+  const reps = repsRaw === null ? NaN : Number(repsRaw);
   const weightKg = Number(formData.get("weight_kg"));
 
   if (!sessionId || !exerciseName || Number.isNaN(reps) || Number.isNaN(weightKg)) {

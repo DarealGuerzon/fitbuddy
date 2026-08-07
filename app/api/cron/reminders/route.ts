@@ -15,6 +15,20 @@ function isAuthorized(authHeader: string | null): boolean {
   return timingSafeEqual(authBuf, expectedBuf);
 }
 
+async function notifyChannel<T extends Profile>(
+  targets: T[],
+  sendFn: (profile: T) => Promise<void>,
+  logPrefix: string
+): Promise<number> {
+  const results = await Promise.allSettled(targets.map(sendFn));
+  results.forEach((result, i) => {
+    if (result.status === "rejected") {
+      console.error(`${logPrefix} failed for profile ${targets[i].id}:`, result.reason);
+    }
+  });
+  return results.filter((r) => r.status === "rejected").length;
+}
+
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (!isAuthorized(authHeader)) {
@@ -37,38 +51,31 @@ export async function GET(request: NextRequest) {
   const missing = (profiles ?? []).filter((p) => !weighedInIds.has(p.id));
 
   const pushTargets = missing.filter((p) => p.push_subscription);
-  const pushResults = await Promise.allSettled(
-    pushTargets.map((profile) =>
-      sendPushNotification(profile.push_subscription as unknown as webpush.PushSubscription, {
-        title: "FitBuddy",
-        body: "No weigh-in logged today yet.",
-      })
-    )
-  );
+  const emailTargets = missing.filter((p): p is Profile & { email: string } => p.email !== null);
 
-  pushResults.forEach((result, i) => {
-    if (result.status === "rejected") {
-      console.error(`Push notification failed for profile ${pushTargets[i].id}:`, result.reason);
-    }
-  });
+  const [pushFailures, emailFailures] = await Promise.all([
+    notifyChannel(
+      pushTargets,
+      (profile) =>
+        sendPushNotification(profile.push_subscription as unknown as webpush.PushSubscription, {
+          title: "FitBuddy",
+          body: "No weigh-in logged today yet.",
+        }),
+      "Push notification"
+    ),
+    notifyChannel(
+      emailTargets,
+      (profile) => sendReminderEmail(profile.email, "FitBuddy reminder", "No weigh-in logged today yet."),
+      "Email reminder"
+    ),
+  ]);
 
-  const emailTargets = missing.filter((p) => p.email);
-  const emailResults = await Promise.allSettled(
-    emailTargets.map((profile) =>
-      sendReminderEmail(profile.email as string, "FitBuddy reminder", "No weigh-in logged today yet.")
-    )
-  );
-
-  emailResults.forEach((result, i) => {
-    if (result.status === "rejected") {
-      console.error(`Email reminder failed for profile ${emailTargets[i].id}:`, result.reason);
-    }
-  });
+  const reachable = new Set([...pushTargets, ...emailTargets].map((p) => p.id));
 
   return NextResponse.json({
     checked: profiles?.length ?? 0,
-    notified: missing.length,
-    pushFailures: pushResults.filter((r) => r.status === "rejected").length,
-    emailFailures: emailResults.filter((r) => r.status === "rejected").length,
+    notified: reachable.size,
+    pushFailures,
+    emailFailures,
   });
 }

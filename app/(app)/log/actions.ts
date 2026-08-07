@@ -44,3 +44,30 @@ export async function logSet(formData: FormData) {
 
   revalidatePath("/log");
 }
+
+export async function logConditioning(formData: FormData) {
+  const sessionId = String(formData.get("session_id"));
+  const modality = String(formData.get("modality") ?? "").trim();
+  const metricType = String(formData.get("metric_type") ?? "").trim();
+  const valueRaw = formData.get("value");
+  const value = valueRaw === null ? NaN : Number(valueRaw);
+  const durationRaw = formData.get("duration_sec");
+  const durationSec = durationRaw === null || durationRaw === "" ? NaN : Number(durationRaw);
+
+  if (!sessionId || !modality || !metricType || Number.isNaN(value)) {
+    throw new Error("Missing required conditioning fields");
+  }
+
+  const supabase = getSupabaseServerClient();
+  const { error } = await supabase.from("conditioning_logs").insert({
+    session_id: sessionId,
+    modality,
+    metric_type: metricType,
+    value,
+    duration_sec: Number.isNaN(durationSec) ? null : durationSec,
+  });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/log");
+}

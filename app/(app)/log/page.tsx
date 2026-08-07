@@ -1,4 +1,5 @@
 import { SetEntryForm } from "@/components/SetEntryForm";
+import { ConditioningEntryForm } from "@/components/ConditioningEntryForm";
 
 export default async function LogPage({
   searchParams,
@@ -11,7 +12,10 @@ export default async function LogPage({
     <main className="flex flex-col gap-6 px-4 pt-8">
       <h1 className="text-xl font-medium">Log</h1>
       {session ? (
-        <SetEntryForm sessionId={session} />
+        <>
+          <SetEntryForm sessionId={session} />
+          <ConditioningEntryForm sessionId={session} />
+        </>
       ) : (
         <p className="text-[var(--dim)] text-sm">
           Start a session from Today to log sets.
